@@ -48,4 +48,4 @@ def generate_ai_itinerary(city, interests, duration, pace):
     return itinerary
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False)
