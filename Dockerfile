@@ -13,8 +13,8 @@ RUN apt-get update
 # Install Flask and other dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Expose port 5000 for Flask
-EXPOSE 5000
+# Expose port 7860 for Flask
+EXPOSE 7860
 
 # Command to run the Flask app
 CMD ["python", "app.py"]
