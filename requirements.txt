@@ -10,3 +10,4 @@ Flask-Admin
 Flask-Script
 Flask-RESTful
 Flask-Cors
+gunicorn
