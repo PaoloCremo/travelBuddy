@@ -1,0 +1,12 @@
+Flask
+Flask-WTF
+Flask-SQLAlchemy
+Flask-Migrate
+Flask-Login
+Flask-Mail
+Flask-Bootstrap
+Flask-Moment
+Flask-Admin
+Flask-Script
+Flask-RESTful
+Flask-Cors

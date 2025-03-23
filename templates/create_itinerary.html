@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block title %}Create Your AI-Powered Itinerary{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="text-center mb-4">Craft Your Perfect Adventure</h1>
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header">
+                    <h2>Tell Us About Your Dream Trip</h2>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="form-group">
+                            <label for="city">Destination City</label>
+                            <input type="text" class="form-control" id="city" name="city" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="interests">Your Interests (comma-separated)</label>
+                            <input type="text" class="form-control" id="interests" name="interests" placeholder="e.g., art, history, food">
+                        </div>
+                        <div class="form-group">
+                            <label for="duration">Trip Duration (days)</label>
+                            <select class="form-control" id="duration" name="duration">
+                                {% for i in range(1, 8) %}
+                                <option value="{{ i }}">{{ i }} day{% if i > 1 %}s{% endif %}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Preferred Pace</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="pace" id="relaxed" value="relaxed" checked>
+                                <label class="form-check-label" for="relaxed">Relaxed</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="pace" id="moderate" value="moderate">
+                                <label class="form-check-label" for="moderate">Moderate</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="pace" id="intense" value="intense">
+                                <label class="form-check-label" for="intense">Intense</label>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-block">Generate My AI Itinerary</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

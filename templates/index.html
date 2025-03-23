@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+
+{% block title %}LocalBuddy - Your AI Travel Companion{% endblock %}
+
+{% block content %}
+<div class="jumbotron jumbotron-fluid" style="background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('{{ url_for('static', filename='images/travel_background.jpg') }}');">
+    <div class="container">
+        <h1 class="display-4"><span class="ai-text">AI-Powered</span> Travel Experiences</h1>
+        <p class="lead">Discover hidden gems and explore like a local with personalized itineraries tailored to your preferences.</p>
+        <hr class="my-4">
+        <p>Let our AI analyze your interests and create the perfect travel plan for your next adventure.</p>
+        <div class="cta-buttons">
+            <a class="btn btn-primary btn-lg pulse-button" href="{{ url_for('create_itinerary') }}" role="button">Create Your Itinerary</a>
+            <a class="btn btn-outline-light btn-lg" href="#how-it-works" role="button">How It Works</a>
+        </div>
+    </div>
+</div>
+
+<div id="how-it-works" class="container section">
+    <h2 class="section-title">How LocalBuddy Works</h2>
+    <div class="row feature-row">
+        <div class="col-md-4">
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-brain"></i>
+                </div>
+                <h3>Dynamic Interest Mapping</h3>
+                <p>Our AI analyzes your preferences to prioritize points of interest that match your unique tastes.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-route"></i>
+                </div>
+                <h3>Route Intelligence</h3>
+                <p>We balance walking time with opportunities for serendipitous discoveries along your journey.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-sync-alt"></i>
+                </div>
+                <h3>Real-Time Adaptation</h3>
+                <p>Your itinerary adjusts dynamically based on weather, closures, and other real-time conditions.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
