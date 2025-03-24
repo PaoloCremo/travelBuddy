@@ -3,11 +3,17 @@ from flask import Flask, render_template, request, jsonify
 # import gradio as gr
 from together import Together
 from geopy.geocoders import Nominatim
-from apikey import key as google_map_api_key
 import googlemaps
 import folium
 from datetime import datetime
 import requests
+
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+api_key = os.getenv("API_KEY")
 
 # Get Client
 your_api_key = "9806a2601560024637df1e4acd804862faa67e08637db6598d920b64eebba43e"
