@@ -13,10 +13,10 @@ import os
 
 load_dotenv()
 
-api_key = os.getenv("API_KEY")
+google_map_api_key = os.getenv("GOOGLE_MAP_API_KEY")
 
 # Get Client
-your_api_key = "9806a2601560024637df1e4acd804862faa67e08637db6598d920b64eebba43e"
+your_api_key = os.getenv("LLM_API_KEY")
 client = Together(api_key=your_api_key)
 
 app = Flask(__name__)
