@@ -10,4 +10,10 @@ Flask-Admin
 Flask-Script
 Flask-RESTful
 Flask-Cors
+requests
+python-dotenv
+together
+geopy
+googlemaps
+folium
 gunicorn
