@@ -66,6 +66,10 @@ body {
     width: 100%;
 }
 
+h1 {
+    margin: 20px;  /* Adds 20px margin on all sides */
+  }
+
 /* Jumbotron Styling */
 .jumbotron {
     padding: 8rem 2rem;
@@ -297,6 +301,54 @@ body {
     border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+.day-container {
+    margin: 20px 0;
+  }
+
+.day-container ul li {
+    margin-bottom: 15px;
+  }
+
+.itinerary-text {
+    margin-right: 20px;
+  }
+  
+/* Itinerary Styling */
+
+.itinerary-container {
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+    margin-bottom: 30px;
+    margin: 20px;
+  }
+  
+  .itinerary-text {
+    flex: 3;
+    overflow-y: auto;
+  }
+  
+  .map-container {
+    flex: 2;
+    position: sticky;
+    top: 20px;
+    height: 100vh;
+    max-height: 600px;
+  }
+  
+  /* For mobile responsiveness */
+  @media (max-width: 768px) {
+    .itinerary-container {
+      flex-direction: column;
+    }
+    
+    .map-container {
+      height: 400px;
+      position: relative;
+    }
+  }
+
+  
 /* Responsive Adjustments */
 @media (max-width: 768px) {
     .jumbotron {

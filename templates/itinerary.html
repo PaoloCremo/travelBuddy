@@ -3,29 +3,14 @@
 {% block title %}Your {{ city }} Itinerary{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <h1 class="text-center mb-4">Your AI-Crafted {{ city }} Adventure</h1>
-    <div class="row">
-        <div class="col-md-8 offset-md-2">
-            <div class="card">
-                <div class="card-header">
-                    <h2>{{ duration }}-Day Itinerary for {{ city }}</h2>
-                </div>
-                <div class="card-body">
-                    {% for day in itinerary %}
-                    <h3 class="text-primary">Day {{ day.day }}</h3>
-                    <ul class="list-group list-group-flush mb-3">
-                        {% for activity in day.activities %}
-                        <li class="list-group-item">{{ activity }}</li>
-                        {% endfor %}
-                    </ul>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="text-center mt-4">
-        <a href="{{ url_for('create_itinerary') }}" class="btn btn-primary btn-lg">Create Another Itinerary</a>
-    </div>
+<h1>Your AI-Crafted {{ city }} Adventure</h1>
+<div class="itinerary-details">
+    <p><strong>Duration:</strong> {{ duration }} day(s)</p>
+    <p><strong>Interests:</strong> {{ interests }}</p>
+    <p><strong>Pace:</strong> {{ pace }}</p>
+</div>
+
+<div class="itinerary-content">
+    {{ itinerary | safe }}
 </div>
 {% endblock %}
