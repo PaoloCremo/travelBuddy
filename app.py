@@ -197,12 +197,11 @@ def validate_stops(stops, city):
 
 @app.route('/get_map_url', methods=['GET'])
 def get_map_url():
-    # city = request.args.get('city')
+
     stops_verb = request.args.get('stops')
     mode = request.args.get('mode', 'walking')
     # Build the map URL on the server side with your API key
 
-    # stops_verb, _ = validate_stops(city, interests, duration, pace, weather)
     stop_list = stops_verb.split(':')[-1].split(';')
     stops_fin = [stop.replace("\n", "").replace('&', 'and').strip().replace(' ', '+') for stop in stop_list]
     way_points = '|'.join(stops_fin[1:-1])

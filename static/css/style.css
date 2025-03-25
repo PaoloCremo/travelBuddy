@@ -370,19 +370,27 @@ h1 {
     .feature-card {
         margin-bottom: 2rem;
     }
+        
+        .itinerary-container {
+          flex-direction: column;
+          height: auto;
+        }
+        
+        .two-column-container {
+          flex-direction: column;
+          height: auto;
+        }
+        
+        .itinerary-text,
+        .map-container {
+          flex: 0 0 100%;
+          padding: 0;
+        }
+        
+        #map-container {
+          width: 100%;
+          height: 400px;
+          margin-top: 20px;
+        }
 
-    .itinerary-container,
-    .two-column-container {
-        flex-direction: column;
-    }
-
-    .itinerary-text,
-    .map-container {
-        flex: 0 0 100%;
-        padding: 0;
-    }
-
-    .itinerary-text {
-        margin-bottom: 20px;
-    }
 }
