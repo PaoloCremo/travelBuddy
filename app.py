@@ -37,14 +37,15 @@ def create_itinerary():
         duration = int(request.form.get('duration'))
         pace = request.form.get('pace')
         
-        itinerary = generate_ai_itinerary(city, interests, duration, pace)
+        itinerary, stops = generate_ai_itinerary(city, interests, duration, pace)
         
         return render_template('itinerary.html', 
                                itinerary=itinerary, 
                                city=city, 
                                duration=duration,
                                interests=interests,
-                               pace=pace)
+                               pace=pace,
+                               stops=stops)
     return render_template('create_itinerary.html')
 
 def generate_ai_itinerary(city, interests, duration, pace):
@@ -52,42 +53,45 @@ def generate_ai_itinerary(city, interests, duration, pace):
     main AI place
     call all AI agents and write a complete response
     Agents:
-    0. get city weather
-    1. generate_first_draft
-    2. get_stops
-    3. validate_stops
-    4. create_itinerary_map
-    5. format_itinerary
+    1. get city weather
+    2. generate_first_draft
+    3. get_stops
+    4. validate_stops
+    5. create_itinerary_map
+    6. format_itinerary
     '''
-    # map_url, first_draft, stops = generate_google_map_url(city, interests, duration, pace)
-    weather = get_city_weather(city)
-    map_url, first_draft, stops = create_itinerary_map(city, interests, duration, pace, weather)
-    final_draft = format_itinerary(first_draft, stops, city, interests, duration, pace, weather)
-
-    itinerary = f"""
-    <div class="itinerary-container">
     
-    <!-- Left column for text content -->
-    <div class="itinerary-text">
-    {final_draft}
-    </div>
-    <div class="map-container">
+    # 1. get city weather
+    weather = get_city_weather(city)
 
-    <!-- Right column for map -->
-    </br>
-    <iframe src="{map_url}" width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy"></iframe>
-    </div>
-    </div>
-    """
+    # 2. generate_first_draft
+    first_draft = generate_first_draft(city, interests, duration, pace, weather)
 
-    return itinerary
+    # 3. get_stops
+    stops_0 = get_stops(first_draft)
+
+    # 4. validate_stops
+    stops = validate_stops(stops_0, city)
+    stops = stops.replace('&', 'and')
+    # stop_list = stops.split(':')[-1].split(';')
+    # stops = [stop.replace("\n", "").replace('&', 'and').strip().replace(' ', '+') for stop in stop_list]
+
+    # 5. format itinerary
+    final_draft = format_itinerary(first_draft, stops, city, interests, duration, pace, weather)
+    
+
+    return final_draft, stops
 
 def get_city_weather(city):
     """
     Get the weather of a city.
     """
+    
+    try:
+        lat, long = get_lat_long_from_address(city)
+    except:
+        lat, long = get_lat_long_from_google(city)
 
-    lat, long = get_lat_long_from_address(city)
     url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={long}&current_weather=true"
     
     resp = requests.get(url)
@@ -136,8 +140,7 @@ def generate_first_draft(city, interests, duration, pace, weather):
     # chat_history.append((user_message, response))
     return response
 
-def get_stops(city, interests, duration, pace, weather):
-    first_drat = generate_first_draft(city, interests, duration, pace, weather)
+def get_stops(first_draft):
 
     chatbot_prompt = f"""
     Get the stops from the first draft and format them following the instructions below:
@@ -150,7 +153,7 @@ def get_stops(city, interests, duration, pace, weather):
     ** don't add anything else to your response. Just the list of stops **
 
     Here is the first draft:
-    {first_drat}
+    {first_draft}
     """
 
     response = client.chat.completions.create(
@@ -161,15 +164,15 @@ def get_stops(city, interests, duration, pace, weather):
 
     # 4. Append the response and image to the chat history
     # chat_history.append((user_message, response))
-    return response, first_drat
+    return response
 
-def validate_stops(city, interests, duration, pace, weather):
-    stops, first_draft = get_stops(city, interests, duration, pace, weather)
+def validate_stops(stops, city):
 
     chatbot_prompt = f"""
     Get the stops from here: {stops} and validate them following the instructions below:
     ## Instructions:
-    1. Check if the stops are real places. Not things to do, e.g. "lunch break" is NOT ok
+    0. Check that the stopps are in the right city, i.e. {city}
+    1. Check if the stops are real places. Not things to do, e.g. "lunch break" is NOT ok. But museums, parks, restaurants etc. are ok!
     2. Check if there are no duplicates in the list of stops
     3. Check if the stops are in the right city
     4. Check if the order of the stops make sense. Don't go back and forth in the city. Each stop should be next to the previous one.
@@ -178,7 +181,10 @@ def validate_stops(city, interests, duration, pace, weather):
 
     Important! Write your response in the following format:
     'Exaplanation: explanation.
-    List of Stops: stop1, city, country; stop2, city, country; etc.'
+     Other stuff, like stops removed.
+     List of Stops: stop1, city, country; stop2, city, country; etc.'
+     
+    IMPORTANT! Do not add anything else after the list of stops!
     """
 
     response = client.chat.completions.create(
@@ -187,64 +193,32 @@ def validate_stops(city, interests, duration, pace, weather):
     )
     response = response.choices[0].message.content
 
-    return response, first_draft
+    return response
 
-def create_itinerary_map(city, interests, duration, pace, weather, mode="walking"):
-    """
-    Create an embedded map with an itinerary from a list of stops.
-    
-    Args:
-        api_key (str): Google Maps API key
-        stops (list): List of stop names or addresses
-        mode (str): Travel mode (driving, walking, bicycling, transit)
-    
-    Returns:
-        folium.Map: Map object that can be saved as HTML
-    """
-    # Initialize Google Maps client
-    stops_verb, first_draft = validate_stops(city, interests, duration, pace, weather)
+@app.route('/get_map_url', methods=['GET'])
+def get_map_url():
+    # city = request.args.get('city')
+    stops_verb = request.args.get('stops')
+    mode = request.args.get('mode', 'walking')
+    # Build the map URL on the server side with your API key
+
+    # stops_verb, _ = validate_stops(city, interests, duration, pace, weather)
     stop_list = stops_verb.split(':')[-1].split(';')
-    stops = [stop.replace("\n", "").replace('&', 'and').strip().replace(' ', '+') for stop in stop_list]
-    way_points = '|'.join(stops[1:-1])
+    stops_fin = [stop.replace("\n", "").replace('&', 'and').strip().replace(' ', '+') for stop in stop_list]
+    way_points = '|'.join(stops_fin[1:-1])
 
     base_url = 'https://www.google.com/maps/embed/v1/directions'
     api_key = google_map_api_key
-    '&origin=San+Francisco&destination=Los+Angeles&waypoints=In-N-Out+Burger,+San+Jose|Fresno&mode=driving'
 
     my_map = (
     f"{base_url}?key={api_key}"
-    f"&origin={stops[0]}"
-    f"&destination={stops[-1]}"
+    f"&origin={stops_fin[0]}"
+    f"&destination={stops_fin[-1]}"
     f"&waypoints={way_points}"
     f"&mode={mode}"
     )
 
-    
-    return my_map, first_draft, stops
-
-def generate_stops_dict(city, interests, duration, pace):
-    stops_verb, first_draft = get_stops(city, interests, duration, pace)
-    stop_list = stops_verb.split(':')[-1].split(";")
-    stops = []
-    for stop in stop_list:
-        stop = stop.replace("\n", "").strip()
-        try:
-            lat, lng = get_lat_long_from_address(stop)
-        except AttributeError:
-            lat, lng = get_lat_long_from_address(city)
-        stop_dict = {
-            "name": stop,
-            "lat": lat,
-            "lng": lng
-        }
-        stops.append(stop_dict)
-
-    return stops, first_draft
-
-def get_lat_long_from_address(address):
-   locator = Nominatim(user_agent='myGeocoder')
-   location = locator.geocode(address)
-   return location.latitude, location.longitude
+    return jsonify({'map_url': my_map})
 
 def format_itinerary(first_draft, stops, city, interests, duration, pace, weather):
 
@@ -291,6 +265,74 @@ def format_itinerary(first_draft, stops, city, interests, duration, pace, weathe
     final_draft = response.choices[0].message.content
 
     return final_draft
+
+def get_lat_long_from_address(address):
+   locator = Nominatim(user_agent='myGeocoder')
+   location = locator.geocode(address)
+   return location.latitude, location.longitude
+
+def get_lat_long_from_google(address):
+    
+    response = requests.get(f'https://maps.googleapis.com/maps/api/geocode/json?key={google_map_api_key}&address={address}')
+
+    resp_json_payload = response.json()
+    
+    out = resp_json_payload['results'][0]['geometry']['location']
+
+    return out['lat'], out['lng']
+
+# other useful functions
+
+def create_itinerary_map(city, interests, duration, pace, weather, mode="walking"):
+    """
+    Create an embedded map with an itinerary from a list of stops.
+    
+    Args:
+        api_key (str): Google Maps API key
+        stops (list): List of stop names or addresses
+        mode (str): Travel mode (driving, walking, bicycling, transit)
+    
+    Returns:
+        folium.Map: Map object that can be saved as HTML
+    """
+    # Initialize Google Maps client
+    stops_verb, first_draft = validate_stops(city, interests, duration, pace, weather)
+    stop_list = stops_verb.split(':')[-1].split(';')
+    stops = [stop.replace("\n", "").replace('&', 'and').strip().replace(' ', '+') for stop in stop_list]
+    way_points = '|'.join(stops[1:-1])
+
+    base_url = 'https://www.google.com/maps/embed/v1/directions'
+    api_key = google_map_api_key
+
+    my_map = (
+    f"{base_url}?key={api_key}"
+    f"&origin={stops[0]}"
+    f"&destination={stops[-1]}"
+    f"&waypoints={way_points}"
+    f"&mode={mode}"
+    )
+
+    
+    return my_map, first_draft, stops
+
+def generate_stops_dict(city, interests, duration, pace):
+    stops_verb, first_draft = get_stops(city, interests, duration, pace)
+    stop_list = stops_verb.split(':')[-1].split(";")
+    stops = []
+    for stop in stop_list:
+        stop = stop.replace("\n", "").strip()
+        try:
+            lat, lng = get_lat_long_from_address(stop)
+        except AttributeError:
+            lat, lng = get_lat_long_from_address(city)
+        stop_dict = {
+            "name": stop,
+            "lat": lat,
+            "lng": lng
+        }
+        stops.append(stop_dict)
+
+    return stops, first_draft
 
 if __name__ == '__main__':
     app.run(debug=False)

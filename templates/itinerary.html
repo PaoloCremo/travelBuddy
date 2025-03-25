@@ -10,7 +10,33 @@
     <p><strong>Pace:</strong> {{ pace }}</p>
 </div>
 
-<div class="itinerary-content">
-    {{ itinerary | safe }}
+<div class="two-column-container">
+    <div class="itinerary-container">
+        <!-- Left column for text content -->
+        <div class="itinerary-text">
+          {{ itinerary | safe }}
+        </div>
+        <!-- Right column for map -->
+        <div class="map-container">
+            <div id="map-container"></div>
+        </div>
+    </div>
 </div>
+
+<script>
+fetch(`/get_map_url?stops={{ stops | safe }}&mode=walking`) 
+  .then(response => response.json())
+  .then(data => {
+    const mapContainer = document.getElementById('map-container');
+    const iframe = document.createElement('iframe');
+    iframe.src = data.map_url;
+    iframe.style.width = '100%';
+    iframe.style.height = '100%';
+    iframe.frameBorder = '0';
+    iframe.style.border = '0';
+    iframe.allowFullscreen = true;
+    mapContainer.appendChild(iframe);
+  });
+</script>
+
 {% endblock %}
