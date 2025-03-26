@@ -79,6 +79,17 @@ body {
 
 h1 {
     margin: 20px;
+    color: var(--primary-color);
+}
+
+h3 {
+    /* margin: 20px; */
+    color: var(--primary-color);
+}
+
+h4 {
+    /* margin: 20px; */
+    color: var(--secondary-color);
 }
 
 /* Jumbotron Styling */
@@ -319,6 +330,10 @@ h1 {
 
 .day-container ul li {
     margin-bottom: 15px;
+}
+
+.itinerary-details strong {
+    color: var(--secondary-color); /* Blue tech color */
 }
 
 .itinerary-container {
