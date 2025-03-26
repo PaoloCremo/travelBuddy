@@ -21,6 +21,36 @@ client = Together(api_key=your_api_key)
 
 app = Flask(__name__)
 
+
+###############
+## TEST DATA ##
+
+final_draft_test =  '''
+    <h3>Day 1:</h3>
+    <ul>
+        <li><strong>6:00 PM:</strong> We'll begin our adventure at Golden Gate Park, one of San Francisco's most iconic natural attractions. This 1,017-acre park is a haven for nature lovers, with its lush greenery, walking trails, and scenic views of the city. We'll take a leisurely stroll through the park, enjoying the evening sun and the sounds of nature.</li>
+        <li><strong>6:30 PM:</strong> From Golden Gate Park, we'll head to the Presidio, a former military base turned national park. This 1,500-acre park offers stunning views of the Golden Gate Bridge, the Bay, and the city skyline. We'll take a short walk along the Presidio's scenic trails, enjoying the sunset and the tranquil atmosphere.</li>
+        <li><strong>7:15 PM:</strong> Next, we'll head to Fisherman's Wharf, a bustling waterfront district famous for its seafood restaurants, street performers, and stunning views of the Bay Bridge. We'll grab a bite to eat at one of the many eateries, sampling some of the city's famous seafood delicacies.</li>
+        <li><strong>8:00 PM:</strong> After dinner, we'll head to Pier 39, a popular spot for seafood, street performers, and live music. We'll take a leisurely stroll along the pier, enjoying the evening atmosphere and the views of the Bay.</li>
+        <li><strong>9:00 PM:</strong> Finally, we'll end our evening at the Ferry Building Marketplace, a historic landmark turned food hall. This bustling marketplace offers a variety of artisanal food vendors, restaurants, and bars. We'll sample some of the city's best food and drinks, from artisanal cheeses to craft beers.</li>
+    </ul>
+    <h4>Useful Tips:</h4>
+    <ul>
+        <li>The current weather is perfect for an evening stroll, with a comfortable temperature of 23.1°C (73.6°F) and a clear sky.</li>
+        <li>Don't forget to pack light clothing for the mild temperature, but be prepared for a light jacket or sweater for the evening.</li>
+        <li>Take advantage of the clear sky to capture stunning photos of the city's iconic landmarks, such as the Golden Gate Bridge or the San Francisco Bay.</li>
+        <li>Be prepared for crowds at popular tourist spots, and consider visiting during the evening hours to avoid the midday rush.</li>
+    </ul>
+    '''
+
+list_of_stops_test = '''
+Golden Gate Park, San Francisco, USA; The Presidio, San Francisco, USA; Fisherman's Wharf, San Francisco, USA; Pier 39, San Francisco, USA; Ferry Building Marketplace, San Francisco, USA&mode=walking
+'''
+
+
+## END TEST DATA ##
+###################
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -37,7 +67,8 @@ def create_itinerary():
         duration = int(request.form.get('duration'))
         pace = request.form.get('pace')
         
-        itinerary, stops = generate_ai_itinerary(city, interests, duration, pace)
+        itinerary, stops = generate_ai_itinerary(city, interests, duration, pace, 
+                                                 tryout=False)
         
         return render_template('itinerary.html', 
                                itinerary=itinerary, 
@@ -48,7 +79,7 @@ def create_itinerary():
                                stops=stops)
     return render_template('create_itinerary.html')
 
-def generate_ai_itinerary(city, interests, duration, pace):
+def generate_ai_itinerary(city, interests, duration, pace, tryout=False):
     '''
     main AI place
     call all AI agents and write a complete response
@@ -60,24 +91,29 @@ def generate_ai_itinerary(city, interests, duration, pace):
     5. create_itinerary_map
     6. format_itinerary
     '''
+    if tryout:
+        
+        final_draft = final_draft_test
+        stops = list_of_stops_test
+
+    else:
+        # 1. get city weather
+        weather = get_city_weather(city)
     
-    # 1. get city weather
-    weather = get_city_weather(city)
-
-    # 2. generate_first_draft
-    first_draft = generate_first_draft(city, interests, duration, pace, weather)
-
-    # 3. get_stops
-    stops_0 = get_stops(first_draft)
-
-    # 4. validate_stops
-    stops = validate_stops(stops_0, city)
-    stops = stops.replace('&', 'and')
-    # stop_list = stops.split(':')[-1].split(';')
-    # stops = [stop.replace("\n", "").replace('&', 'and').strip().replace(' ', '+') for stop in stop_list]
-
-    # 5. format itinerary
-    final_draft = format_itinerary(first_draft, stops, city, interests, duration, pace, weather)
+        # 2. generate_first_draft
+        first_draft = generate_first_draft(city, interests, duration, pace, weather)
+    
+        # 3. get_stops
+        stops_0 = get_stops(first_draft)
+    
+        # 4. validate_stops
+        stops = validate_stops(stops_0, city)
+        stops = stops.replace('&', 'and')
+        # stop_list = stops.split(':')[-1].split(';')
+        # stops = [stop.replace("\n", "").replace('&', 'and').strip().replace(' ', '+') for stop in stop_list]
+    
+        # 5. format itinerary
+        final_draft = format_itinerary(first_draft, stops, city, interests, duration, pace, weather)
     
 
     return final_draft, stops
