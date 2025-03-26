@@ -30,20 +30,23 @@
                             </select>
                         </div>
                         <div class="form-group">
-                            <label>Preferred Pace</label>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="pace" id="relaxed" value="relaxed" checked>
-                                <label class="form-check-label" for="relaxed">Relaxed</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="pace" id="moderate" value="moderate">
-                                <label class="form-check-label" for="moderate">Moderate</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="pace" id="intense" value="intense">
-                                <label class="form-check-label" for="intense">Intense</label>
-                            </div>
+                            <label for="pace">Preferred Pace</label>
+                            <select class="form-control" id="pace" name="pace">
+                                <option value="relaxed">Relaxed</option>
+                                <option value="moderate">Moderate</option>
+                                <option value="intense">Intense</option>
+                            </select>
                         </div>
+                        <div class="form-group">
+                                <label for="llm-selection">Select AI Model:</label>
+                                <select id="llm-selection" name="llm" class="form-control">
+                                    <option value="Llama-3.3-70B">Llama-3.3-70B</option>
+                                    <option value="Meta-Llama-3-8B">Meta-Llama-3-8B</option>
+                                    <option value="DeepSeek-R1">DeepSeek-R1</option>
+                                    <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+                                </select>
+                        </div>
+                        
                         <button type="submit" class="btn btn-primary btn-block">Generate My AI Itinerary</button>
                     </form>
                 </div>

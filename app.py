@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 import os
 
 from datetime import datetime
+import asyncio
 
 load_dotenv()
 
@@ -20,18 +21,10 @@ meta_api_key = os.getenv("TOGETHER_API_KEY")
 gemini_api_key = os.getenv("GEMINI_API_KEY")
 
 # get Client
-llm_model = "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free"
+# llm_model = "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free"
 # llm_model = "deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free"
 # llm_model = "meta-llama/Meta-Llama-3-8B-Instruct-Lite"
 # llm_model = "gemini-2.0-flash"
-
-if "meta" in llm_model or "deepseek" in llm_model:
-    client = Together(api_key=meta_api_key)
-elif "gemini" in llm_model:
-    client = genai.Client(api_key=gemini_api_key)
-else:
-    raise ValueError("Model not found")
-
 
 app = Flask(__name__)
 
@@ -81,6 +74,9 @@ def create_itinerary():
         interests = request.form.get('interests')
         duration = int(request.form.get('duration'))
         pace = request.form.get('pace')
+        model = request.form.get('llm')
+        print(model)
+        set_global_llm_model(model, verbose=True)
         
         itinerary, stops = generate_ai_itinerary(city, interests, duration, pace, 
                                                  tryout=False, verbose=True)
@@ -94,7 +90,39 @@ def create_itinerary():
                                stops=stops)
     return render_template('create_itinerary.html')
 
-def generate_ai_itinerary(city, interests, duration, pace, tryout=False, verbose=False):
+def set_global_llm_model(model, verbose=False):
+
+    global llm_model
+    
+    if model == "Llama-3.3-70B":
+        llm_model = "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free"
+    elif model == "Meta-Llama-3-8B":
+        llm_model = "meta-llama/Meta-Llama-3-8B-Instruct-Lite"
+    elif model == 'DeepSeek-R1':
+        llm_model = "deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free"
+    elif model == 'gemini-2.0-flash':
+        llm_model = "gemini-2.0-flash"
+    else:
+        raise ValueError("Model not found")
+    
+    if verbose:
+        print(f"Model set to: {llm_model}")
+    
+    global client
+    if "meta" in llm_model or "deepseek" in llm_model:
+        client = Together(api_key=meta_api_key)
+    elif "gemini" in llm_model:
+        try:
+            asyncio.get_event_loop()
+        except RuntimeError:
+            asyncio.set_event_loop(asyncio.new_event_loop())
+        client = genai.Client(api_key=gemini_api_key)
+    else:
+        raise ValueError("Model not found")
+    
+    
+def generate_ai_itinerary(city, interests, duration, pace, 
+                          tryout=False, verbose=False):
     '''
     main AI place
     call all AI agents and write a complete response
@@ -129,7 +157,12 @@ def generate_ai_itinerary(city, interests, duration, pace, tryout=False, verbose
     
         # 5. format itinerary
         final_draft = format_itinerary(first_draft, stops, city, interests, duration, pace, weather)
-    
+        if verbose:
+            print(f'\nper stops: {stops}\n')
+        stops = stops.split(':')[-1]
+        if verbose:
+            print(f'\npost stops: {stops}\n')
+
     end = datetime.now()
     if verbose:
         print(f"\nLLM Model: {llm_model}\nTime taken: {end-start}\n")
