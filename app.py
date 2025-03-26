@@ -4,17 +4,34 @@ from flask import Flask, render_template, request, jsonify
 from together import Together
 from geopy.geocoders import Nominatim
 import requests
+from google import genai
 
 from dotenv import load_dotenv
 import os
 
+from datetime import datetime
+
 load_dotenv()
 
+# api keys
 google_map_api_key = os.getenv("GOOGLE_MAP_API_KEY")
+# meta_api_key = os.getenv("LLM_API_KEY")
+meta_api_key = os.getenv("TOGETHER_API_KEY")
+gemini_api_key = os.getenv("GEMINI_API_KEY")
 
-# Get Client
-your_api_key = os.getenv("LLM_API_KEY")
-client = Together(api_key=your_api_key)
+# get Client
+llm_model = "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free"
+# llm_model = "deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free"
+# llm_model = "meta-llama/Meta-Llama-3-8B-Instruct-Lite"
+# llm_model = "gemini-2.0-flash"
+
+if "meta" in llm_model or "deepseek" in llm_model:
+    client = Together(api_key=meta_api_key)
+elif "gemini" in llm_model:
+    client = genai.Client(api_key=gemini_api_key)
+else:
+    raise ValueError("Model not found")
+
 
 app = Flask(__name__)
 
@@ -66,7 +83,7 @@ def create_itinerary():
         pace = request.form.get('pace')
         
         itinerary, stops = generate_ai_itinerary(city, interests, duration, pace, 
-                                                 tryout=False)
+                                                 tryout=False, verbose=True)
         
         return render_template('itinerary.html', 
                                itinerary=itinerary, 
@@ -77,7 +94,7 @@ def create_itinerary():
                                stops=stops)
     return render_template('create_itinerary.html')
 
-def generate_ai_itinerary(city, interests, duration, pace, tryout=False):
+def generate_ai_itinerary(city, interests, duration, pace, tryout=False, verbose=False):
     '''
     main AI place
     call all AI agents and write a complete response
@@ -90,6 +107,7 @@ def generate_ai_itinerary(city, interests, duration, pace, tryout=False):
 
     6. map is created with the webpage
     '''
+    start = datetime.now()
     if tryout:
         
         final_draft = final_draft_test
@@ -112,7 +130,9 @@ def generate_ai_itinerary(city, interests, duration, pace, tryout=False):
         # 5. format itinerary
         final_draft = format_itinerary(first_draft, stops, city, interests, duration, pace, weather)
     
-
+    end = datetime.now()
+    if verbose:
+        print(f"\nLLM Model: {llm_model}\nTime taken: {end-start}\n")
     return final_draft, stops
 
 def get_city_weather(city):
@@ -138,11 +158,7 @@ def get_city_weather(city):
     Give suggestions on whether it is a good time to visit the city or not, if it's too hot or too cold to be outside, etc.
     """
 
-    response = client.chat.completions.create(
-        model="meta-llama/Meta-Llama-3-8B-Instruct-Lite",
-        messages=[{"role": "user", "content": chatbot_prompt}],
-    )
-    response = response.choices[0].message.content
+    response = chat(chatbot_prompt, llm_model)
 
     return response
 
@@ -163,11 +179,7 @@ def generate_first_draft(city, interests, duration, pace, weather):
     * add a precise list of stops
     """
 
-    response = client.chat.completions.create(
-        model="meta-llama/Meta-Llama-3-8B-Instruct-Lite",
-        messages=[{"role": "user", "content": chatbot_prompt}],
-    )
-    response = response.choices[0].message.content
+    response = chat(chatbot_prompt, llm_model)
 
     return response
 
@@ -187,11 +199,7 @@ def get_stops(first_draft):
     {first_draft}
     """
 
-    response = client.chat.completions.create(
-        model="meta-llama/Meta-Llama-3-8B-Instruct-Lite",
-        messages=[{"role": "user", "content": chatbot_prompt}],
-    )
-    response = response.choices[0].message.content
+    response = chat(chatbot_prompt, llm_model)
 
     return response
 
@@ -216,11 +224,7 @@ def validate_stops(stops, city):
     IMPORTANT! Do not add anything else after the list of stops!
     """
 
-    response = client.chat.completions.create(
-        model="meta-llama/Meta-Llama-3-8B-Instruct-Lite",
-        messages=[{"role": "user", "content": chatbot_prompt}],
-    )
-    response = response.choices[0].message.content
+    response = chat(chatbot_prompt, llm_model)
 
     return response
 
@@ -285,11 +289,7 @@ def format_itinerary(first_draft, stops, city, interests, duration, pace, weathe
     '
     """
 
-    response = client.chat.completions.create(
-        model="meta-llama/Meta-Llama-3-8B-Instruct-Lite",
-        messages=[{"role": "user", "content": chatbot_prompt}],
-    )
-    final_draft = response.choices[0].message.content
+    final_draft = chat(chatbot_prompt, llm_model)
 
     return final_draft
 
@@ -307,6 +307,23 @@ def get_lat_long_from_google(address):
     out = resp_json_payload['results'][0]['geometry']['location']
 
     return out['lat'], out['lng']
+
+def chat(prompt, model):
+    
+    if 'meta' in model or 'deepseek' in model:
+        response = client.chat.completions.create(model=llm_model,
+                                                  messages=[{"role": "user", "content": prompt}],)
+        output = response.choices[0].message.content
+
+    elif 'gemini' in model:
+        response = client.models.generate_content(model=model,
+                                                  contents=prompt)
+        output = response.text
+    
+    else:
+        raise ValueError("Model not found")
+
+    return output
 
 # other useful functions
 
@@ -362,4 +379,4 @@ def generate_stops_dict(city, interests, duration, pace):
     return stops, first_draft
 
 if __name__ == '__main__':
-    app.run(debug=False)
+    app.run(debug=True)
