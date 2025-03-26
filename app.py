@@ -3,9 +3,6 @@ from flask import Flask, render_template, request, jsonify
 # import gradio as gr
 from together import Together
 from geopy.geocoders import Nominatim
-import googlemaps
-import folium
-from datetime import datetime
 import requests
 
 from dotenv import load_dotenv
@@ -24,6 +21,7 @@ app = Flask(__name__)
 
 ###############
 ## TEST DATA ##
+###############
 
 final_draft_test =  '''
     <h3>Day 1:</h3>
@@ -47,7 +45,7 @@ list_of_stops_test = '''
 Golden Gate Park, San Francisco, USA; The Presidio, San Francisco, USA; Fisherman's Wharf, San Francisco, USA; Pier 39, San Francisco, USA; Ferry Building Marketplace, San Francisco, USA&mode=walking
 '''
 
-
+###################
 ## END TEST DATA ##
 ###################
 
@@ -88,8 +86,9 @@ def generate_ai_itinerary(city, interests, duration, pace, tryout=False):
     2. generate_first_draft
     3. get_stops
     4. validate_stops
-    5. create_itinerary_map
-    6. format_itinerary
+    5. format_itinerary
+
+    6. map is created with the webpage
     '''
     if tryout:
         
@@ -109,8 +108,6 @@ def generate_ai_itinerary(city, interests, duration, pace, tryout=False):
         # 4. validate_stops
         stops = validate_stops(stops_0, city)
         stops = stops.replace('&', 'and')
-        # stop_list = stops.split(':')[-1].split(';')
-        # stops = [stop.replace("\n", "").replace('&', 'and').strip().replace(' ', '+') for stop in stop_list]
     
         # 5. format itinerary
         final_draft = format_itinerary(first_draft, stops, city, interests, duration, pace, weather)
@@ -172,8 +169,6 @@ def generate_first_draft(city, interests, duration, pace, weather):
     )
     response = response.choices[0].message.content
 
-    # 4. Append the response and image to the chat history
-    # chat_history.append((user_message, response))
     return response
 
 def get_stops(first_draft):
@@ -198,8 +193,6 @@ def get_stops(first_draft):
     )
     response = response.choices[0].message.content
 
-    # 4. Append the response and image to the chat history
-    # chat_history.append((user_message, response))
     return response
 
 def validate_stops(stops, city):
@@ -208,7 +201,7 @@ def validate_stops(stops, city):
     Get the stops from here: {stops} and validate them following the instructions below:
     ## Instructions:
     0. Check that the stopps are in the right city, i.e. {city}
-    1. Check if the stops are real places. Not things to do, e.g. "lunch break" is NOT ok. But museums, parks, restaurants etc. are ok!
+    1. Check if the stops are real places. Not general things, e.g. "lunch break", but specific ones, e.g. "lunch break at La Terrazza in Vancouver" yes! Museums, parks, restaurants etc. are very ok!
     2. Check if there are no duplicates in the list of stops
     3. Check if the stops are in the right city
     4. Check if the order of the stops make sense. Don't go back and forth in the city. Each stop should be next to the previous one.
@@ -236,7 +229,6 @@ def get_map_url():
 
     stops_verb = request.args.get('stops')
     mode = request.args.get('mode', 'walking')
-    # Build the map URL on the server side with your API key
 
     stop_list = stops_verb.split(':')[-1].split(';')
     stops_fin = [stop.replace("\n", "").replace('&', 'and').strip().replace(' ', '+') for stop in stop_list]
@@ -328,7 +320,7 @@ def create_itinerary_map(city, interests, duration, pace, weather, mode="walking
         mode (str): Travel mode (driving, walking, bicycling, transit)
     
     Returns:
-        folium.Map: Map object that can be saved as HTML
+        
     """
     # Initialize Google Maps client
     stops_verb, first_draft = validate_stops(city, interests, duration, pace, weather)
