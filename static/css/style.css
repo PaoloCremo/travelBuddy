@@ -372,6 +372,14 @@ h4 {
     height: 100%;
 }
 
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  .fade {
+    opacity: 0;
+  }
 /* Responsive Adjustments */
 @media (max-width: 768px) {
     .jumbotron {

@@ -49,9 +49,62 @@
                         
                         <button type="submit" class="btn btn-primary btn-block">Generate My AI Itinerary</button>
                     </form>
+
+                    <div id="loading-spinner" style="display: none; text-align: center; margin: 20px 0;">
+                        <div style="border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 2s linear infinite; margin: 0 auto;"></div>
+                        <p id="loading-text" style="margin-top: 10px; font-weight: bold; transition: opacity 0.5s ease;">Initializing AI model...</p>
+                    </div>
+
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Get the form and spinner elements
+    const itineraryForm = document.querySelector('form');
+    const loadingSpinner = document.getElementById('loading-spinner');
+    const loadingText = document.getElementById('loading-text');
+    
+    // Messages to display in rotation
+    const messages = [
+      "Initializing AI model...",
+      "Processing your travel preferences...",
+      "Generating destination recommendations...",
+      "Creating personalized activities...",
+      "Finalizing your itinerary..."
+    ];
+    
+    let messageIndex = 0;
+    let messageInterval;
+    
+    // Function to cycle through messages with fade effect
+    function cycleMessages() {
+      // Fade out
+      loadingText.classList.add('fade');
+      
+      // After fade out completes, change text and fade in
+      setTimeout(function() {
+        messageIndex = (messageIndex + 1) % messages.length;
+        loadingText.textContent = messages[messageIndex];
+        loadingText.classList.remove('fade');
+      }, 500);
+    }
+    
+    // Add submit event listener to the form
+    itineraryForm.addEventListener('submit', function() {
+      // Show the spinner
+      loadingSpinner.style.display = 'block';
+      
+      // Start cycling messages every 3 seconds
+      messageInterval = setInterval(cycleMessages, 3000);
+      
+      // Form will submit normally
+      return true;
+    });
+  });
+</script>
+  
 {% endblock %}
