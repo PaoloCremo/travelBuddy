@@ -1,6 +1,5 @@
 from flask import Flask, render_template, request, jsonify
 
-# import gradio as gr
 from together import Together
 from geopy.geocoders import Nominatim
 import requests
@@ -16,48 +15,10 @@ load_dotenv()
 
 # api keys
 google_map_api_key = os.getenv("GOOGLE_MAP_API_KEY")
-# meta_api_key = os.getenv("LLM_API_KEY")
 meta_api_key = os.getenv("TOGETHER_API_KEY")
 gemini_api_key = os.getenv("GEMINI_API_KEY")
 
-# get Client
-# llm_model = "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free"
-# llm_model = "deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free"
-# llm_model = "meta-llama/Meta-Llama-3-8B-Instruct-Lite"
-# llm_model = "gemini-2.0-flash"
-
 app = Flask(__name__)
-
-
-###############
-## TEST DATA ##
-###############
-
-final_draft_test =  '''
-    <h3>Day 1:</h3>
-    <ul>
-        <li><strong>6:00 PM:</strong> We'll begin our adventure at Golden Gate Park, one of San Francisco's most iconic natural attractions. This 1,017-acre park is a haven for nature lovers, with its lush greenery, walking trails, and scenic views of the city. We'll take a leisurely stroll through the park, enjoying the evening sun and the sounds of nature.</li>
-        <li><strong>6:30 PM:</strong> From Golden Gate Park, we'll head to the Presidio, a former military base turned national park. This 1,500-acre park offers stunning views of the Golden Gate Bridge, the Bay, and the city skyline. We'll take a short walk along the Presidio's scenic trails, enjoying the sunset and the tranquil atmosphere.</li>
-        <li><strong>7:15 PM:</strong> Next, we'll head to Fisherman's Wharf, a bustling waterfront district famous for its seafood restaurants, street performers, and stunning views of the Bay Bridge. We'll grab a bite to eat at one of the many eateries, sampling some of the city's famous seafood delicacies.</li>
-        <li><strong>8:00 PM:</strong> After dinner, we'll head to Pier 39, a popular spot for seafood, street performers, and live music. We'll take a leisurely stroll along the pier, enjoying the evening atmosphere and the views of the Bay.</li>
-        <li><strong>9:00 PM:</strong> Finally, we'll end our evening at the Ferry Building Marketplace, a historic landmark turned food hall. This bustling marketplace offers a variety of artisanal food vendors, restaurants, and bars. We'll sample some of the city's best food and drinks, from artisanal cheeses to craft beers.</li>
-    </ul>
-    <h4>Useful Tips:</h4>
-    <ul>
-        <li>The current weather is perfect for an evening stroll, with a comfortable temperature of 23.1°C (73.6°F) and a clear sky.</li>
-        <li>Don't forget to pack light clothing for the mild temperature, but be prepared for a light jacket or sweater for the evening.</li>
-        <li>Take advantage of the clear sky to capture stunning photos of the city's iconic landmarks, such as the Golden Gate Bridge or the San Francisco Bay.</li>
-        <li>Be prepared for crowds at popular tourist spots, and consider visiting during the evening hours to avoid the midday rush.</li>
-    </ul>
-    '''
-
-list_of_stops_test = '''
-Golden Gate Park, San Francisco, USA; The Presidio, San Francisco, USA; Fisherman's Wharf, San Francisco, USA; Pier 39, San Francisco, USA; Ferry Building Marketplace, San Francisco, USA&mode=walking
-'''
-
-###################
-## END TEST DATA ##
-###################
 
 @app.route('/')
 def index():
@@ -87,8 +48,120 @@ def create_itinerary():
                                duration=duration,
                                interests=interests,
                                pace=pace,
-                               stops=stops)
+                               stops=stops,
+                               llm=model)
     return render_template('create_itinerary.html')
+
+@app.route('/submit_feedback', methods=['POST'])
+def submit_feedback():
+    if request.method == 'POST':
+        feedback = request.form.get('feedback')
+    
+        old_itinerary = request.form.get('itinerary')
+        city = request.form.get('city')
+        interests = request.form.get('interests')
+        duration = request.form.get('duration')
+        pace = request.form.get('pace')
+        model = request.form.get('new_llm')
+        old_stops = request.form.get('stops')
+    
+        print(f"llm_model: {model}")
+        
+        set_global_llm_model(model, verbose=True)
+    
+        itinerary, stops = generate_revised_ai_itinerary(feedback, 
+                                                         old_itinerary, old_stops,
+                                                         city, interests, duration, pace, 
+                                                         tryout=False, verbose=True)
+        
+        print(f"itinerary: {itinerary}\nstops: {stops}")
+        
+        return render_template('itinerary.html', 
+                               itinerary=itinerary, 
+                               city=city, 
+                               duration=duration,
+                               interests=interests,
+                               pace=pace,
+                               stops=stops,
+                               llm=model)
+    
+    return render_template('create_itinerary.html')
+
+@app.route('/stop/<stop_name>', methods=['GET', 'POST'])
+def stop_page(stop_name, tryout=False):
+    if tryout:
+        from test.test import more_info_test, description_test, stop_name_test
+        
+        stop_name = stop_name_test
+        description = description_test
+        ai_response = more_info_test
+
+    else:
+        # Get the description from the query parameters
+        description = request.args.get('description', 'No description provided.')
+        
+        # Replace %20 with spaces for readability
+        stop_name = stop_name.replace('%20', ' ')
+        description = description.replace('%20', ' ')
+        
+        # Generate a detailed explanation using the AI
+        chatbot_prompt = f"""
+        Provide a detailed explanation for {stop_name}. Description: {description}
+        ## Instructions:
+        - be clear 
+        - provide some suggestions
+        - add some link to more info
+        
+        Finally, format your response in HTML!
+        # Instructions:
+        - do not add any other text
+        - DO NOT put <body>, <html>, <head>, <table> tags. It will be embedded in a webpage
+        - no table! Start with the title <h3>
+        - if there are conclusions, put them in normal <p> tags. No <h1> or <h2> tags
+        
+        Finally, be sure that everything is formatted in HTML, e.g. all paragraphs in <p> tags.
+        """
+        # Check if llm_model is defined, otherwise set a default value
+        if 'llm_model' not in globals() or llm_model is None:
+            model = "Meta-Llama-3-8B"
+            set_global_llm_model(model, verbose=True)
+
+        ai_response = chat(chatbot_prompt, llm_model)
+        model = get_model_name_from_llm(llm_model)
+
+    print(f"RESPONSE\n{ai_response}")
+    
+    return render_template('stop.html', stop_name=stop_name, description=description, ai_response=ai_response, 
+                           llm=model)
+
+
+@app.route('/question', methods=['POST'])
+def question_with_ai():
+    user_message = request.json.get('message')
+    model = request.json.get('new_llm')
+    
+    print(f"\nuser_message: {user_message}")
+    print(f"llm_model: {model}")
+    set_global_llm_model(model, verbose=True)
+    prompt = f"""
+    This is the message from the user: {user_message}.
+    This is the page they are on: {request.referrer}.
+    ## Instructions:
+    - do not use the page to get the answer to the user question, this is just a context for you
+    - be clear
+    - provide some insightful answer
+    - do not repeat the question
+    - divide your answer in short and catchy paragraphs
+    IMPORTANT: format the answer in HTML! But do not add ```html``` or stuff like that. Go directly to the <p>
+    """
+
+    response = chat(prompt, llm_model)
+
+    print(f"\nRESPONSE\n{response}\n")
+
+    return jsonify({'response': response})
+
+
 
 def set_global_llm_model(model, verbose=False):
 
@@ -120,7 +193,19 @@ def set_global_llm_model(model, verbose=False):
     else:
         raise ValueError("Model not found")
     
-    
+def get_model_name_from_llm(llm_model):
+    mapping = {
+        "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free": "Llama-3.3-70B",
+        "meta-llama/Meta-Llama-3-8B-Instruct-Lite": "Meta-Llama-3-8B",
+        "deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free": "DeepSeek-R1",
+        "gemini-2.0-flash": "gemini-2.0-flash"
+    }
+
+    if llm_model in mapping:
+        return mapping[llm_model]
+    else:
+        raise ValueError("LLM model string not recognized")
+        
 def generate_ai_itinerary(city, interests, duration, pace, 
                           tryout=False, verbose=False):
     '''
@@ -137,7 +222,8 @@ def generate_ai_itinerary(city, interests, duration, pace,
     '''
     start = datetime.now()
     if tryout:
-        
+        from test.test import final_draft_test, list_of_stops_test
+
         final_draft = final_draft_test
         stops = list_of_stops_test
 
@@ -167,6 +253,49 @@ def generate_ai_itinerary(city, interests, duration, pace,
     if verbose:
         print(f"\nLLM Model: {llm_model}\nTime taken: {end-start}\n")
     return final_draft, stops
+
+def generate_revised_ai_itinerary(feedback, 
+                                  old_itinerary, old_stops,
+                                  city, interests, duration, pace, 
+                                  tryout=False, verbose=False):
+    '''
+    main AI place
+    '''
+
+    start = datetime.now()
+    if tryout:
+        
+        final_draft = final_draft_test
+        stops = list_of_stops_test
+
+    else:
+        # 1. get city weather
+        weather = get_city_weather(city)
+    
+        # 2. generate new_first_draft
+        new_first_draft = generate_new_first_draft(feedback, old_itinerary, old_stops, city, interests, duration, pace, weather)
+    
+        # 3. get_stops
+        stops_0 = get_stops(new_first_draft)
+    
+        # 4. validate_stops
+        stops = validate_stops(stops_0, city)
+        stops = stops.replace('&', 'and')
+    
+        # 5. format itinerary
+        final_draft = format_new_itinerary(new_first_draft, stops, city, interests, duration, pace, weather,
+                                           feedback, old_itinerary, old_stops)
+        if verbose:
+            print(f'\nper stops: {stops}\n')
+        stops = stops.split(':')[-1]
+        if verbose:
+            print(f'\npost stops: {stops}\n')
+
+    end = datetime.now()
+    if verbose:
+        print(f"\nLLM Model: {llm_model}\nTime taken: {end-start}\n")
+    return final_draft, stops
+
 
 def get_city_weather(city):
     """
@@ -215,6 +344,35 @@ def generate_first_draft(city, interests, duration, pace, weather):
     response = chat(chatbot_prompt, llm_model)
 
     return response
+
+def generate_new_first_draft(feedback, old_itinerary, old_stops, city, interests, duration, pace, weather):
+    
+    chatbot_prompt = f"""
+    You are a local tour guide in {city} helping tourists to find the best places to visit.
+    They have these interests: {interests}.
+    They want to visit the city with this pace: {pace}; and in this time: {duration} days. 
+    Also, the weather in the city is {weather}.
+    
+    You already gave them an itinerary, but they want to change it.
+    Here is the old itinerary: {old_itinerary}
+    Here is the old list of stops: {old_stops}
+    Here is the feedback from the tourists: {feedback}
+    So adapt your answers to it.
+
+    ## Instructions:
+    * adapt your answer to the city, interests, duration, pace, and weather
+    * be as thorough as possible. Don't leave behind any details
+    * Give a detailed verbose response
+    * add a precise list of stops
+    * stick to the feedback from the tourists
+    * don't include the old itinerary in your response
+    * don't include the old list of stops in your response
+    """
+
+    response = chat(chatbot_prompt, llm_model)
+
+    return response
+
 
 def get_stops(first_draft):
 
@@ -308,9 +466,24 @@ def format_itinerary(first_draft, stops, city, interests, duration, pace, weathe
     <div class="day-container">
         <h3>Day 1:</h3>
         <ul>
-            <li><strong>10:00 AM:</strong> Visit the main attractions</li>
-            <li><strong>2:00 PM:</strong> Explore local cuisine</li>
-            <li><strong>6:00 PM:</strong> Evening entertainment</li>
+            <li>
+                <strong>10:00 AM:</strong> Visit the main attractions. 
+                <a href="/stop/Main%20attraction?description=the%20main%20attraction%20is%20this%2and%20that." target="_blank">
+                    More info
+                </a>.
+            </li>
+            <li>
+                <strong>2:00 PM:</strong> Explore local cuisine.
+                <a href="/stop/local%20restaurant?description=description%20of%20the%20local%20restaurant." target="_blank">
+                    More info
+                </a>.
+            </li>
+            <li>
+                <strong>6:00 PM:</strong> Evening entertainment.
+                <a href="/stop/evening%entertainment?description=description%20of%20the%20evening%20entertainment." target="_blank">
+                    More info
+                </a>.
+            </li>
         </ul>
         <h4>Useful Tips:</h4>
         <ul>
@@ -320,6 +493,80 @@ def format_itinerary(first_draft, stops, city, interests, duration, pace, weathe
         </ul>
     </div>
     '
+
+    Be sure to include - for each stop described - a link to the stop page with a description of the stop as per example above. Substitute the example description with a brief description of the stop.
+    """
+
+    final_draft = chat(chatbot_prompt, llm_model)
+
+    return final_draft
+
+
+def format_new_itinerary(first_draft, stops, city, interests, duration, pace, weather,
+                         feedback, old_itinerary, old_stops):                                           
+
+    chatbot_prompt = f"""
+    You are a local tour guide in {city} helping tourists to find the best places to visit.
+    You already gave them an itinerary, but they want to change it.
+    Here is the old itinerary: {old_itinerary} and the old list of stops: {old_stops}.
+    Here is the feedback from the tourists: {feedback}.
+    
+    Read the new first draft - {first_draft} - and the list of new stops - {stops} - and write a complete response.
+    Compare them with the old itinerary and stops and include the changes in your response. Be sure you follow the feedback from the tourists.
+    Include information about the weather: {weather}.
+
+    Keep also in mind that:
+    - They have these interests: {interests}.
+    - They want to visit the city with this pace: {pace}; 
+    - They want to visit the city in this time: {duration}. 
+    
+
+    # Instructions:
+    - prioritize the feedback from the tourists
+    - don't include the first draft in your response
+    - summarise a bit the explanation from the first draft
+    - don't include the raw list of stops in your response
+    - add some useful tips for the tourists
+
+    Format your response following the example below. It is important to list the stops in the right order with some explanation:
+    '
+    <h2>Welcome to {city}!</h2>
+    <p>I'd be happy to help you plan your {duration}-day adventure in this amazing city! 
+    Given your interests in {interests}, I've curated a {pace}-paced itinerary for you.</p>
+    
+    <div class="day-container">
+        <h3>Day 1:</h3>
+        <ul>
+            <li>
+                <strong>10:00 AM:</strong> Visit the main attractions. 
+                <a href="/stop/Main%20attraction?description=the%20main%20attraction%20is%20this%2and%20that." target="_blank">
+                    More info
+                </a>.
+            </li>
+            <li>
+                <strong>2:00 PM:</strong> Explore local cuisine.
+                <a href="/stop/local%20restaurant?description=description%20of%20the%20local%20restaurant." target="_blank">
+                    More info
+                </a>.
+            </li>
+            <li>
+                <strong>6:00 PM:</strong> Evening entertainment.
+                <a href="/stop/evening%entertainment?description=description%20of%20the%20evening%20entertainment." target="_blank">
+                    More info
+                </a>.
+            </li>
+        </ul>
+        <h4>Useful Tips:</h4>
+        <ul>
+            <li>something about the weather</li>
+            <li>Wear comfortable shoes</li>
+            <li>Bring a camera</li>
+        </ul>
+    </div>
+    '
+
+    Be sure to include - for each stop described - a link to the stop page with a description of the stop as per example above.
+    Substitute the example description with a brief description of the stop.
     """
 
     final_draft = chat(chatbot_prompt, llm_model)
@@ -349,7 +596,7 @@ def chat(prompt, model):
         output = response.choices[0].message.content
 
     elif 'gemini' in model:
-        response = client.models.generate_content(model=model,
+        response = client.models.generate_content(model=llm_model,
                                                   contents=prompt)
         output = response.text
     
@@ -359,38 +606,6 @@ def chat(prompt, model):
     return output
 
 # other useful functions
-
-def create_itinerary_map(city, interests, duration, pace, weather, mode="walking"):
-    """
-    Create an embedded map with an itinerary from a list of stops.
-    
-    Args:
-        api_key (str): Google Maps API key
-        stops (list): List of stop names or addresses
-        mode (str): Travel mode (driving, walking, bicycling, transit)
-    
-    Returns:
-        
-    """
-    # Initialize Google Maps client
-    stops_verb, first_draft = validate_stops(city, interests, duration, pace, weather)
-    stop_list = stops_verb.split(':')[-1].split(';')
-    stops = [stop.replace("\n", "").replace('&', 'and').strip().replace(' ', '+') for stop in stop_list]
-    way_points = '|'.join(stops[1:-1])
-
-    base_url = 'https://www.google.com/maps/embed/v1/directions'
-    api_key = google_map_api_key
-
-    my_map = (
-    f"{base_url}?key={api_key}"
-    f"&origin={stops[0]}"
-    f"&destination={stops[-1]}"
-    f"&waypoints={way_points}"
-    f"&mode={mode}"
-    )
-
-    
-    return my_map, first_draft, stops
 
 def generate_stops_dict(city, interests, duration, pace):
     stops_verb, first_draft = get_stops(city, interests, duration, pace)
@@ -410,6 +625,7 @@ def generate_stops_dict(city, interests, duration, pace):
         stops.append(stop_dict)
 
     return stops, first_draft
+
 
 if __name__ == '__main__':
     app.run(debug=True)

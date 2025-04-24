@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}{{ stop_name }}{% endblock %}
+
+{% block header %}{{ stop_name }}{% endblock %}
+
+{% block content %}
+<div class="itinerary-details text-center">
+    <h1 style="color: var(--secondary-color);">{{ stop_name | safe }}</h1>
+</div>
+
+    <div class="two-column-container" style="margin: 1em;">
+        <div class="itinerary-text">
+            {{ ai_response | safe}}
+        </div>
+        
+        
+        <div id="chat-container" style="width: 100%; margin-top: 1em;">
+            <h3 class="text-center">Personalize Your Itinerary</h3>
+            <form onsubmit="event.preventDefault(); sendMessage();" class="chat-box-form">
+                <textarea id="user-input" rows="5" placeholder="Ask questions here..." required></textarea>
+                <select id="llm-selection" name="new_llm" class="form-control">
+                    <option value="Llama-3.3-70B" {% if llm == "Llama-3.3-70B" %}selected{% endif %}>Llama-3.3-70B</option>
+                    <option value="Meta-Llama-3-8B" {% if llm == "Meta-Llama-3-8B" %}selected{% endif %}>Meta-Llama-3-8B</option>
+                    <option value="DeepSeek-R1" {% if llm == "DeepSeek-R1" %}selected{% endif %}>DeepSeek-R1</option>
+                    <option value="gemini-2.0-flash" {% if llm == "gemini-2.0-flash" %}selected{% endif %}>gemini-2.0-flash</option>
+                </select>
+                <br>
+                <button type="submit" class="btn btn-primary btn-block">Submit</button>
+            </form>
+    
+            <!-- Box for displaying AI replies -->
+            <div id="chat-box" style="border: 1px solid #ccc; padding: 1em; height: 300px; overflow-y: auto; background-color: #f9f9f9; margin-top: 1em; color: #000;">
+                <!-- AI responses will appear here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function sendMessage() {
+            const userMessage = document.getElementById('user-input').value;
+            const llmModel = document.getElementById('llm-selection').value;
+        
+            try {
+                // Send the message to the server
+                const response = await fetch('/question', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: userMessage, new_llm: llmModel })
+                });
+        
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+        
+                // Parse the JSON response
+                const data = await response.json();
+        
+                // Update the chat box with the user's message and AI's response
+                const chatBox = document.getElementById('chat-box');
+                chatBox.innerHTML = `<p>${data.response}</p>`;
+        
+                // Clear the input field
+                document.getElementById('user-input').value = '';
+            } catch (error) {
+                console.error('Error:', error);
+            }
+      }
+    </script>
+{% endblock %}
