@@ -115,7 +115,7 @@ def stop_page(stop_name, tryout=False):
         Finally, format your response in HTML!
         # Instructions:
         - do not add any other text
-        - DO NOT put <body>, <html>, <head>, <table> tags. It will be embedded in a webpage
+        - DO NOT put <body>, <html>, <head>, <table> tags. It will be embedded in a webpage. Do not either start with ````html```, it is not needed.
         - no table! Start with the title <h3>
         - if there are conclusions, put them in normal <p> tags. No <h1> or <h2> tags
         
