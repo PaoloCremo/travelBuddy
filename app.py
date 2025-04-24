@@ -115,7 +115,8 @@ def stop_page(stop_name, tryout=False):
         Finally, format your response in HTML!
         # Instructions:
         - do not add any other text
-        - DO NOT put <body>, <html>, <head>, <table> tags. It will be embedded in a webpage. Do not either start with ````html```, it is not needed.
+        - DO NOT put <body>, <html>, <head>, <table> tags. It will be embedded in a webpage. 
+        - YOU MUST NOT start with ````html .
         - no table! Start with the title <h3>
         - if there are conclusions, put them in normal <p> tags. No <h1> or <h2> tags
         
@@ -567,6 +568,7 @@ def format_new_itinerary(first_draft, stops, city, interests, duration, pace, we
 
     Be sure to include - for each stop described - a link to the stop page with a description of the stop as per example above.
     Substitute the example description with a brief description of the stop.
+    Be sure that all that you write is in html format.
     """
 
     final_draft = chat(chatbot_prompt, llm_model)
